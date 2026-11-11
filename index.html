@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>APP Johan Carreño</title>
+<meta name="description" content="Gym · Alimentación · Gastos">
+<meta name="theme-color" content="#09090a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<!-- iPhone: pantalla completa al agregarla a inicio -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Johan Carreño">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<script>
+  /* ======================================================================
+     ÚNICO DATO QUE DEBES CAMBIAR:
+     pega entre las comillas la "URL de la aplicación web" de Apps Script
+     (Implementar → Gestionar implementaciones). Termina en /exec
+     ====================================================================== */
+  const APP_URL = 'https://script.google.com/macros/s/AKfycby9h8IPd-CxQneXaX2n6ys5W6HXCOgZf4HBqD91AiLmZqrwIobFYr0FXp-cGWHawy0/exec';
+</script>
+<style>
+  html,body{margin:0;height:100%;background:#09090a;color:#ecebe8;overflow:hidden;
+            font-family:Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  /* La app ocupa toda la pantalla y respeta la muesca y la barra de gestos */
+  #app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#09090a;
+       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+       box-sizing:border-box;opacity:0;transition:opacity .4s}
+  #app.listo{opacity:1}
+
+  /* Pantalla de carga */
+  #carga{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+         background:radial-gradient(120% 60% at 50% -10%,#1c1c20 0%,rgba(9,9,10,0) 60%),#09090a;transition:opacity .4s}
+  #carga.fuera{opacity:0;pointer-events:none}
+  #carga img{width:108px;height:108px;border-radius:50%}
+  #carga p{margin:0;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:#8f8f96}
+  .barra{width:120px;height:2px;background:#26262b;border-radius:2px;overflow:hidden}
+  .barra i{display:block;width:40%;height:100%;background:linear-gradient(90deg,#8c8c94,#f6f6f7,#8c8c94);animation:va 1.2s ease-in-out infinite}
+  @keyframes va{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+
+  /* Avisos (sin conexión / falta la URL) */
+  .aviso{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+         padding:32px;gap:14px;background:#09090a}
+  .aviso.ver{display:flex}
+  .aviso h1{font-family:Georgia,serif;font-weight:400;font-size:24px;margin:0}
+  .aviso p{margin:0;color:#8f8f96;font-size:14px;line-height:1.6;max-width:320px}
+  button{font:600 12px Montserrat,system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;border:0;border-radius:10px;
+         padding:15px 26px;color:#111113;cursor:pointer;
+         background:linear-gradient(160deg,#f4f4f6 0%,#c4c4ca 50%,#8f8f97 100%)}
+
+  /* Sugerencia para instalar (solo cuando se abre desde el navegador) */
+  #instalar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:none;align-items:center;gap:12px;
+            padding:12px 12px 12px 14px;background:#161618;border:1px solid #38383f;border-radius:14px;
+            box-shadow:0 12px 32px rgba(0,0,0,.6);z-index:5}
+  #instalar.ver{display:flex}
+  #instalar img{width:40px;height:40px;border-radius:50%;flex-shrink:0}
+  #instalar div{flex:1;font-size:12.5px;line-height:1.4;color:#c9c9cf}
+  #instalar b{display:block;color:#ecebe8;font-size:13.5px}
+  #instalar button{padding:11px 14px;font-size:10.5px;flex-shrink:0}
+  #instalar .cerrar{background:none;color:#8f8f96;padding:8px;font-size:18px;letter-spacing:0}
+</style>
+</head>
+<body>
+
+<iframe id="app" title="APP Johan Carreño" allow="clipboard-write"></iframe>
+
+<div id="carga">
+  <img src="icon-192.png" alt="">
+  <div class="barra"><i></i></div>
+  <p>Cargando</p>
+</div>
+
+<div class="aviso" id="sinRed">
+  <img src="icon-192.png" alt="" width="72" height="72" style="border-radius:50%">
+  <h1>Sin conexión</h1>
+  <p>Necesitas internet para ver y guardar tus datos. Revisa tu conexión e intenta de nuevo.</p>
+  <button onclick="location.reload()">Reintentar</button>
+</div>
+
+<div class="aviso" id="sinUrl">
+  <h1>Falta un paso</h1>
+  <p>Abre <b>index.html</b> y pega la URL de tu aplicación web de Apps Script en <b>APP_URL</b>.</p>
+</div>
+
+<div id="instalar">
+  <img src="icon-192.png" alt="">
+  <div id="instalarTxt"><b>Instala la app</b>Ábrela desde tu pantalla de inicio, sin navegador.</div>
+  <button id="instalarBtn">Instalar</button>
+  <button class="cerrar" onclick="ocultarInstalar()" aria-label="Cerrar">✕</button>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const app = $('app'), carga = $('carga');
+
+  function mostrarAviso(id) { carga.classList.add('fuera'); $(id).classList.add('ver'); }
+
+  // ---------- Cargar la app ----------
+  if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(APP_URL)) {
+    mostrarAviso('sinUrl');
+  } else if (!navigator.onLine) {
+    mostrarAviso('sinRed');
+  } else {
+    app.addEventListener('load', () => {
+      app.classList.add('listo');
+      setTimeout(() => carga.classList.add('fuera'), 350);
+    });
+    app.src = APP_URL;
+    // Si tarda demasiado, quita la pantalla de carga igualmente
+    setTimeout(() => { app.classList.add('listo'); carga.classList.add('fuera'); }, 12000);
+  }
+  addEventListener('offline', () => mostrarAviso('sinRed'));
+  addEventListener('online', () => { if ($('sinRed').classList.contains('ver')) location.reload(); });
+
+  // ---------- Modo sin conexión (permite instalarla) ----------
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+
+  // ---------- Sugerencia de instalación ----------
+  const instalada = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  let cerrada = false;
+  try { cerrada = localStorage.getItem('instalarCerrado') === '1'; } catch (e) {}
+  function ocultarInstalar() {
+    $('instalar').classList.remove('ver');
+    try { localStorage.setItem('instalarCerrado', '1'); } catch (e) {}
+  }
+
+  if (!instalada && !cerrada) {
+    // Android / Chrome: botón que abre el diálogo de instalación
+    let pedido = null;
+    addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      pedido = e;
+      $('instalar').classList.add('ver');
+    });
+    $('instalarBtn').onclick = async () => {
+      if (!pedido) return;
+      pedido.prompt();
+      await pedido.userChoice.catch(() => {});
+      pedido = null;
+      $('instalar').classList.remove('ver');
+    };
+    addEventListener('appinstalled', () => $('instalar').classList.remove('ver'));
+
+    // iPhone / iPad: Safari no tiene botón, se explica cómo hacerlo
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (ios) {
+      $('instalarTxt').innerHTML = '<b>Instala la app</b>Toca <b style="display:inline">Compartir</b> ⬆︎ y luego <b style="display:inline">Agregar a inicio</b>.';
+      $('instalarBtn').style.display = 'none';
+      setTimeout(() => $('instalar').classList.add('ver'), 2500);
+    }
+  }
+</script>
+</body>
+</html>
